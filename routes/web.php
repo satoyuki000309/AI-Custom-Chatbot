@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\QnAController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -17,4 +19,16 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-require __DIR__.'/auth.php';
+Route::middleware(['auth'])->group(function () {
+    Route::resource('/admin/qna', QnAController::class);
+});
+
+Route::get('/chat-widget', function () {
+    return view('widget');
+});
+
+Route::post('/api/send-message', [ChatController::class, 'sendMessage']);
+
+Route::get('/admin/chats/export', [App\Http\Controllers\ChatExportController::class, 'export'])->name('chats.export');
+
+require __DIR__ . '/auth.php';

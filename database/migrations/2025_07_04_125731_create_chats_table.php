@@ -10,10 +10,12 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('qna', function (Blueprint $table) {
+        Schema::create('chats', function (Blueprint $table) {
             $table->id();
-            $table->string('question');
-            $table->text('answer');
+            $table->string('visitor_id')->nullable();
+            $table->ipAddress('ip_address')->nullable();
+            $table->text('message');
+            $table->text('response')->nullable();
             $table->timestamps();
         });
     }
@@ -23,6 +25,6 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('qna');
+        Schema::dropIfExists('chats');
     }
 };
