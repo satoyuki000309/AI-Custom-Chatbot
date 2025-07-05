@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Chat;
 use App\Models\QnA;
+use App\Services\CustomMessageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 
@@ -14,6 +15,9 @@ class ChatController extends Controller
         $message = $request->input('message');
         $ip = $request->ip();
         $visitorId = $request->session()->getId();
+
+        // Get context for custom messages
+        $context = CustomMessageService::getContext($visitorId);
 
         // Check if there's a matching QnA first
         $qna = QnA::where('question', 'LIKE', '%' . $message . '%')->first();
@@ -38,7 +42,14 @@ class ChatController extends Controller
                 ],
             ]);
 
-            $reply = $response->json('choices.0.message.content') ?? 'Sorry, I could not process your request.';
+            $aiReply = $response->json('choices.0.message.content');
+
+            if ($aiReply) {
+                $reply = $aiReply;
+            } else {
+                // Use custom fallback message if AI fails
+                $reply = CustomMessageService::getFallbackMessage($context);
+            }
         }
 
         // Save chat to DB
@@ -51,6 +62,19 @@ class ChatController extends Controller
 
         return response()->json([
             'reply' => $reply
+        ]);
+    }
+
+    /**
+     * Get welcome message for chat widget
+     */
+    public function getWelcomeMessage(Request $request)
+    {
+        $visitorId = $request->session()->getId();
+        $context = CustomMessageService::getContext($visitorId);
+
+        return response()->json([
+            'message' => CustomMessageService::getWelcomeMessage($context)
         ]);
     }
 }

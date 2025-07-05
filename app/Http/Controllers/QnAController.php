@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\QnA;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 
 class QnAController extends Controller
@@ -25,8 +26,12 @@ class QnAController extends Controller
             'answer' => 'required|string',
         ]);
 
-        QnA::create($request->all());
-        return redirect()->route('qna.index')->with('success', 'Q&A created successfully.');
+        $qna = QnA::create($request->all());
+
+        // Log the creation
+        ActivityLogService::logCreate($qna, "Created new Q&A: '{$qna->question}'");
+
+        return redirect()->route('dashboard')->with('success', 'Q&A created successfully.');
     }
 
     public function edit(QnA $qna)
@@ -41,13 +46,28 @@ class QnAController extends Controller
             'answer' => 'required|string',
         ]);
 
+        $oldValues = $qna->toArray();
         $qna->update($request->all());
-        return redirect()->route('qna.index')->with('success', 'Q&A updated successfully.');
+
+        // Log the update
+        ActivityLogService::logUpdate(
+            $qna,
+            $oldValues,
+            $qna->toArray(),
+            "Updated Q&A: '{$qna->question}'"
+        );
+
+        return redirect()->route('dashboard')->with('success', 'Q&A updated successfully.');
     }
 
     public function destroy(QnA $qna)
     {
+        $question = $qna->question;
         $qna->delete();
-        return redirect()->route('qna.index')->with('success', 'Q&A deleted successfully.');
+
+        // Log the deletion
+        ActivityLogService::logDelete($qna, "Deleted Q&A: '{$question}'");
+
+        return redirect()->route('dashboard')->with('success', 'Q&A deleted successfully.');
     }
 }

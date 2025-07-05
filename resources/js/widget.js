@@ -4,71 +4,38 @@ document.addEventListener("DOMContentLoaded", function () {
         const widget = document.createElement("div");
         widget.id = "chat-widget";
         widget.innerHTML = `
-            <style>
-                #chat-window {
-                    display: none;
-                    position: fixed;
-                    bottom: 80px;
-                    right: 20px;
-                    width: 300px;
-                    height: 400px;
-                    background: white;
-                    border: 1px solid #ccc;
-                    border-radius: 8px;
-                    box-shadow: 0 0 10px rgba(0,0,0,0.2);
-                    font-family: sans-serif;
-                    z-index: 10000;
-                    display: flex;
-                    flex-direction: column;
-                }
-                #chat-header {
-                    background: #333;
-                    color: #fff;
-                    padding: 10px;
-                    border-top-left-radius: 8px;
-                    border-top-right-radius: 8px;
-                    font-size: 16px;
-                }
-                #chat-messages {
-                    flex: 1;
-                    overflow-y: auto;
-                    padding: 10px;
-                    font-size: 14px;
-                    background: #fafafa;
-                }
-                .chat-msg { margin: 5px 0; }
-                .chat-user { text-align: right; color: #333; }
-                .chat-bot { text-align: left; color: #007bff; }
-                #chat-input-area {
-                    padding: 10px;
-                    border-top: 1px solid #eee;
-                    background: #fff;
-                    display: flex;
-                    gap: 5px;
-                }
-                #chat-input {
-                    flex: 1;
-                    padding: 6px;
-                    font-size: 14px;
-                    border: 1px solid #ccc;
-                    border-radius: 4px;
-                }
-                #chat-send-btn {
-                    padding: 6px 12px;
-                    background: #007bff;
-                    color: #fff;
-                    border: none;
-                    border-radius: 4px;
-                    cursor: pointer;
-                    font-size: 14px;
-                }
-            </style>
-            <div id="chat-window">
-                <div id="chat-header">AI Chatbot</div>
-                <div id="chat-messages"></div>
-                <div id="chat-input-area">
-                    <input type="text" id="chat-input" placeholder="Type your message..." autocomplete="off"/>
-                    <button id="chat-send-btn">Send</button>
+            <div id="chat-toggle" class="chat-toggle">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                </svg>
+            </div>
+            <div id="chat-container" class="chat-container hidden">
+                <div class="chat-header">
+                    <h3>AI Assistant</h3>
+                    <button id="chat-close" class="chat-close">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div id="chat-messages" class="chat-messages">
+                    <div id="welcome-message" class="message bot-message">
+                        <div class="message-content">
+                            <div class="typing-indicator">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="chat-input-container">
+                    <input type="text" id="chat-input" placeholder="Type your message..." class="chat-input">
+                    <button id="chat-send" class="chat-send">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                        </svg>
+                    </button>
                 </div>
             </div>
         `;
@@ -171,5 +138,129 @@ document.addEventListener("DOMContentLoaded", function () {
         div.textContent = text;
         messages.appendChild(div);
         messages.scrollTop = messages.scrollHeight;
+    }
+
+    // Get elements
+    const chatToggle = document.getElementById('chat-toggle');
+    const chatContainer = document.getElementById('chat-container');
+    const chatClose = document.getElementById('chat-close');
+    const chatMessages = document.getElementById('chat-messages');
+    const chatInput = document.getElementById('chat-input');
+    const chatSend = document.getElementById('chat-send');
+    const welcomeMessage = document.getElementById('welcome-message');
+
+    // Load custom welcome message
+    async function loadWelcomeMessage() {
+        try {
+            const response = await fetch('/api/welcome-message');
+            const data = await response.json();
+
+            // Update welcome message content
+            const messageContent = welcomeMessage.querySelector('.message-content');
+            messageContent.innerHTML = data.message;
+
+            // Remove typing indicator
+            const typingIndicator = messageContent.querySelector('.typing-indicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        } catch (error) {
+            console.error('Error loading welcome message:', error);
+            // Fallback welcome message
+            const messageContent = welcomeMessage.querySelector('.message-content');
+            messageContent.innerHTML = 'Hello! How can I help you today?';
+            const typingIndicator = messageContent.querySelector('.typing-indicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+    }
+
+    // Toggle chat
+    chatToggle.addEventListener('click', function () {
+        chatContainer.classList.toggle('hidden');
+        if (!chatContainer.classList.contains('hidden')) {
+            loadWelcomeMessage();
+        }
+    });
+
+    chatClose.addEventListener('click', function () {
+        chatContainer.classList.add('hidden');
+    });
+
+    // Send message
+    function sendMessage() {
+        const message = chatInput.value.trim();
+        if (!message) return;
+
+        // Add user message
+        addMessage(message, 'user');
+        chatInput.value = '';
+
+        // Show typing indicator
+        const typingMessage = addMessage('', 'bot', true);
+
+        // Send to server
+        fetch('/api/send-message', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({ message: message })
+        })
+            .then(response => response.json())
+            .then(data => {
+                // Remove typing indicator and add response
+                typingMessage.remove();
+                addMessage(data.reply, 'bot');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                typingMessage.remove();
+                addMessage('Sorry, I encountered an error. Please try again.', 'bot');
+            });
+    }
+
+    // Add message to chat
+    function addMessage(content, sender, isTyping = false) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${sender}-message`;
+
+        const messageContent = document.createElement('div');
+        messageContent.className = 'message-content';
+
+        if (isTyping) {
+            messageContent.innerHTML = `
+                <div class="typing-indicator">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            `;
+        } else {
+            messageContent.textContent = content;
+        }
+
+        messageDiv.appendChild(messageContent);
+        chatMessages.appendChild(messageDiv);
+
+        // Scroll to bottom
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        return messageDiv;
+    }
+
+    // Event listeners
+    chatSend.addEventListener('click', sendMessage);
+    chatInput.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+
+    // Load welcome message when widget is first shown
+    if (!chatContainer.classList.contains('hidden')) {
+        loadWelcomeMessage();
     }
 });
